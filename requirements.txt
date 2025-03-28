@@ -1,0 +1,9 @@
+pg8000
+configparser
+numpy
+pandas
+sentence_transformers
+tqdm
+faiss-cpu
+transformers
+streamlit
