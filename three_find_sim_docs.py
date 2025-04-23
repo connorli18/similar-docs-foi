@@ -34,7 +34,7 @@ def find_similar_docs(test_set: int, model_prefix: str, embedding_dir: str, num_
     doc_ids = np.load(os.path.join(FAISS_DIR, f"{model_prefix}_doc_ids.npy"), allow_pickle=True)  
 
     # find the embedding for the query document
-    query_path = os.path.join(embedding_dir, f"{doc_id}.npy")
+    query_path = os.path.join(embedding_dir, f"{doc_id}_tb.npy")
     if not os.path.exists(query_path):
         raise FileNotFoundError(f"Embedding file '{query_path}' not found!")
 
@@ -50,7 +50,9 @@ def find_similar_docs(test_set: int, model_prefix: str, embedding_dir: str, num_
     similar_doc_ids = [doc_ids[i] for i in I[0] if i < len(doc_ids)] 
 
     #print(f"Top {num_docs} similar documents for '{doc_id}':", similar_doc_ids[1:])
-    return similar_doc_ids[1:]
+    clean_ids = [s[:-3] if s.endswith('_tb') else s for s in similar_doc_ids[1:]]              # skip the first item
+
+    return clean_ids
 
 def find_docs_wrapper(test_set: int, doc_id: str, model_num: str) -> list:
 

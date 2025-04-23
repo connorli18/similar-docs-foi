@@ -6,33 +6,41 @@ from sentence_transformers import SentenceTransformer, models
 from tqdm import tqdm
 import csv
 
-def generate_embeddings(model, output_dir: str, dataset_num: int) -> list:
-    
-    output_dir = os.path.join(f"test-{dataset_num}", output_dir)
-    os.makedirs(output_dir, exist_ok=True)
+def generate_embeddings(model, output_dir: str, dataset_num: int):
+    """
+    Encode title and body separately, concatenate the vectors, and save each
+    embedding to test-<dataset_num>/<output_dir>/<doc_id>_tb.npy.
 
-    # Load the sample data
-    with open(f"datasets/v{dataset_num}_sample_data.csv", "r", encoding='utf-8') as f:
-        reader = csv.reader(f)
-        next(reader) 
-        csv_length = 0
+    Returns (num_rows_processed, dest_dir)
+    """
+    dest_dir = os.path.join(f"test-{dataset_num}", output_dir)
+    os.makedirs(dest_dir, exist_ok=True)
 
-        # Generate embeddings for each document
-        for doc_id, text in tqdm(reader, desc="Processing documents"):
-            csv_length += 1
-            
-            embedding = model.encode(text)
+    csv_path = f"datasets/v{dataset_num}_sample_data.csv"
 
-            # Save the embeddings to disk in .npy format
-            np_bytes = io.BytesIO()
-            np.save(np_bytes, embedding)
-            np_bytes.seek(0)
+    csv_length = 0
+    with open(csv_path, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
 
-            file_name = os.path.join(output_dir, f"{doc_id}.npy")
-            with open(file_name, "wb") as f:
-                f.write(np_bytes.read())
+        for row in tqdm(reader, desc="Processing documents"):
+            csv_length += 1                           
+            doc_id = row["doc_id"].strip()
+            title  = row["title"].strip()
+            body   = row["body"].strip()
 
-    return [csv_length, output_dir]
+            title_emb = model.encode(title)
+            body_emb  = model.encode(body)
+            embedding = np.concatenate([title_emb, body_emb])
+
+            buffer = io.BytesIO()
+            np.save(buffer, embedding)
+            buffer.seek(0)
+
+            file_path = os.path.join(dest_dir, f"{doc_id}_tb.npy")
+            with open(file_path, "wb") as out_f:
+                out_f.write(buffer.read())
+
+    return csv_length, dest_dir
 
 def main(model_num: int):
 
@@ -57,7 +65,7 @@ def main(model_num: int):
     else:
         model = SentenceTransformer(model_name)
 
-    dataset_num = 3
+    dataset_num = 1
     num_embeddings, output_dir = generate_embeddings(model=model, output_dir=output_dir, dataset_num=dataset_num)
     print(f"Generated {num_embeddings} embeddings in directory: {output_dir}")
 
@@ -65,7 +73,7 @@ def main(model_num: int):
 if __name__ == "__main__":
 
     if len(sys.argv) < 2:
-        print("Usage: python3 generate_embeddings.py <model_num>")
+        print("Usage: python3 one-generate-embeddings.py <model_num>")
         sys.exit(1)
 
     model_num = sys.argv[1]

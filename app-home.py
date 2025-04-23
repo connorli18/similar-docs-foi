@@ -2,6 +2,7 @@ import os
 import streamlit as st
 from st_helper import random_doc_select, find_similar_docs
 import pandas as pd
+from collections import OrderedDict
 
 st.set_page_config(
     page_title="Find Similar Documents",
@@ -29,9 +30,9 @@ st.write("")
 st.write("")
 st.write("")
 
-def format_doc_links(doc_id, base_url="https://connorli18.pythonanywhere.com/articlespec/primeprog3k2"):
+def format_doc_links(doc_id, base_url="https://docviewer.history-lab.org/?doc_id="):
     #return f"<a href='{base_url}{doc_id}' target='_blank'>{doc_id}</a>"
-    return f"<a href='{base_url}' target='_blank'>{doc_id}</a>"
+    return f"<a href='{base_url}{doc_id}' target='_blank'>{doc_id}</a>"
 
 
 def display_stats(results: dict) -> None:
@@ -69,6 +70,26 @@ def display_stats(results: dict) -> None:
         for doc_id in overlap_all_models:
             st.markdown(format_doc_links(doc_id=doc_id), unsafe_allow_html=True)
 
+def find_doc_row(dataset: str, doc_id: str, *, as_dict=False, return_df=False):
+    dataset_path = os.path.join("datasets", dataset)
+    if not os.path.exists(dataset_path):
+        raise FileNotFoundError(f"{dataset} not found")
+
+    df_all = pd.read_csv(dataset_path, encoding="utf-8")
+    try:
+        row = df_all.loc[df_all["doc_id"] == doc_id].iloc[0]
+    except IndexError:
+        raise KeyError(f"{doc_id} not in {dataset}")
+
+    df_row = row.to_frame().T
+    df_row.insert(0, "View Doc", f"https://docviewer.history-lab.org/?doc_id={doc_id}")
+
+    if return_df:
+        return df_row
+    if as_dict:
+        return OrderedDict(df_row.iloc[0])
+    return df_row.iloc[0]
+
 def find_doc_text(dataset: str, doc_id: str) -> str:
     """
     Find the text of a document given its ID and dataset.
@@ -84,30 +105,64 @@ def find_doc_text(dataset: str, doc_id: str) -> str:
     return doc_text
 
 def convert_to_df(results: dict, key: str, dataset: str) -> pd.DataFrame:
-
-    return pd.DataFrame ({
-        "doc_id": results[key],
-        "text_preview": [find_doc_text(doc_id=doc_id, dataset=dataset) for doc_id in results[key]],
-    })
+    """
+    Build a DataFrame containing the *entire rows* from `dataset`
+    that correspond to the doc IDs stored under `results[key]`.
+    """
+    doc_ids = results[key]                
+    
+    rows = [
+        find_doc_row(dataset=dataset, doc_id=doc_id, as_dict=True)
+        for doc_id in doc_ids
+    ]
+    
+    return pd.DataFrame(rows).reset_index(drop=True)
 
 def display_tables(results: dict, dataset: str) -> None:
     col1, col2, col3 = st.columns(3)
 
     with col1: 
         st.subheader("Model 1: MiniLM")
-        st.write("Top 10 similar documents:")        
-        st.dataframe(convert_to_df(results=results, key="mini_lm", dataset=dataset).reset_index(drop=True))
+        st.write("Top 10 similar documents:")   
+        st.dataframe(
+            convert_to_df(results, key="mini_lm", dataset=dataset),
+            hide_index=True,
+            column_config={
+                "View Doc": st.column_config.LinkColumn(
+                    label="View",          
+                    display_text="View"    
+                )
+            },
+        )     
 
     
     with col2:
         st.subheader("Model 2: Longformer")
         st.write("Top 10 similar documents:")
-        st.dataframe(convert_to_df(results=results, key="longformer", dataset=dataset).reset_index(drop=True))
+        st.dataframe(
+            convert_to_df(results, key="longformer", dataset=dataset),
+            hide_index=True,
+            column_config={
+                "View Doc": st.column_config.LinkColumn(
+                    label="View",          
+                    display_text="View"    
+                )
+            },
+        )    
 
     with col3:
         st.subheader("Model 3: MS Marco BERT")
         st.write("Top 10 similar documents:")
-        st.dataframe(convert_to_df(results=results, key="msmarco_bert", dataset=dataset).reset_index(drop=True))
+        st.dataframe(
+            convert_to_df(results, key="msmarco_bert", dataset=dataset),
+            hide_index=True,
+            column_config={
+                "View Doc": st.column_config.LinkColumn(
+                    label="View",          
+                    display_text="View"  
+                )
+            },
+        )    
 
 
 
@@ -151,7 +206,8 @@ with col3:
                 results = find_similar_docs(test_set=selected_option_search, doc_id=doc_id_search)
                 display_tables(results=results, dataset=selected_option_search)
                 display_stats(results=results)
-            except:
+            except Exception as e:
+                st.write(f"Error: {e}")
                 st.error("An error occurred while searching for similar documents. Please check the document ID and try again.")
         else:
             st.warning("Please enter a document ID / test dataset to search.")

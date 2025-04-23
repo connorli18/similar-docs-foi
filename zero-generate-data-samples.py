@@ -11,17 +11,17 @@ def save_sample_data(num_docs: int, file_name: str) -> str:
         bernoulli_randomizer = 0.9
 
         cur.execute(f"""
-            SELECT doc_id, body
+            SELECT *
             FROM docs TABLESAMPLE BERNOULLI({bernoulli_randomizer})
             WHERE array_length(regexp_split_to_array(body, '\\s+'), 1) BETWEEN 10 AND 150
             LIMIT 100000;
         """)
         
         rows = cur.fetchall()
+        column_names = [desc[0] for desc in cur.description] 
 
-    # randomly sample num_docs documents
-    df = pd.DataFrame(rows, columns=["doc_id", "body"])
-
+    df = pd.DataFrame(rows, columns=column_names) 
+    
     if len(df) < num_docs:
         print(f"Warning: Only {len(df)} documents available. Sampling all of them.")
         sample_df = df
