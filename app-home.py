@@ -104,11 +104,14 @@ def find_doc_text(dataset: str, doc_id: str) -> str:
     
     return doc_text
 
-def convert_to_df(results: dict, key: str, dataset: str) -> pd.DataFrame:
+def convert_to_df(results: dict,dataset: str,  key: str = None) -> pd.DataFrame:
     """
     Build a DataFrame containing the *entire rows* from `dataset`
     that correspond to the doc IDs stored under `results[key]`.
     """
+    if key is None:
+        return pd.DataFrame([find_doc_row(dataset=dataset, doc_id=results)])
+
     doc_ids = results[key]                
     
     rows = [
@@ -164,50 +167,88 @@ def display_tables(results: dict, dataset: str) -> None:
             },
         )    
 
+st.subheader("Randomly Generate and View Comparisons")
+st.write("Randomly generate a document ID from a test set and view the retrieval results for the most similar documents.")
+options = [f for f in os.listdir("datasets") if f.endswith(".csv")]
+selected_option = st.selectbox("Choose an option:", options, key="random_doc_select")
+
+if st.button("🔍 Find Similar Documents"):
+    if selected_option:
+        doc_id_search = random_doc_select(dataset=selected_option)
+        try:
+            main_doc_info = find_doc_row(dataset=selected_option, doc_id=doc_id_search)
+            st.markdown(f"## Document: {main_doc_info['title'][:50]} ([*{doc_id_search}*]({main_doc_info['View Doc']}))")
+            col = st.columns([7,3])
+            with col[0]:
+                st.write(f"{find_doc_text(doc_id=doc_id_search, dataset=selected_option)}")
+                
+            with col[1]:
+                df = convert_to_df(results=doc_id_search, dataset=selected_option)
+
+                if "View Doc" in df.columns:
+                    df = df.drop(columns=["View Doc"])
+
+                df_transposed = pd.DataFrame({
+                    "Field": df.columns,
+                    "Value": df.iloc[0].values
+                })
+
+                st.dataframe(df_transposed, hide_index=True)
 
 
-col1, col2, col3 = st.columns([3,1,9])
-random_doc_id = None
 
-with col1:
-    st.subheader("Randomly Generate Document")
-    st.write("Select a test set to randomly generate a document ID from that set.")
-    options = [f for f in os.listdir("datasets") if f.endswith(".csv")]
-    selected_option = st.selectbox("Choose an option:", options, key="random_doc_select")
 
-    col1_sub, col2_sub, col3_sub = st.columns([3, 7, 6])
+            st.write("")
+            st.write("")
+            results = find_similar_docs(test_set=selected_option, doc_id=doc_id_search)
+            display_tables(results=results, dataset=selected_option)
+            display_stats(results=results)
+        except Exception as e:
+            st.write(f"Error: {e}")
+            st.error("An error occurred while searching for similar documents. Please check the document ID and try again.")
 
-    with col2_sub:
-        if st.button("🎲 Generate Random DocID"):
-            random_doc_id = random_doc_select(dataset=selected_option)
+# col1, col2, col3 = st.columns([3,1,9])
+# random_doc_id = None
+
+# with col1:
+#     st.subheader("Randomly Generate Document")
+#     st.write("Select a test set to randomly generate a document ID from that set.")
+#     options = [f for f in os.listdir("datasets") if f.endswith(".csv")]
+#     selected_option = st.selectbox("Choose an option:", options, key="random_doc_select")
+
+#     col1_sub, col2_sub, col3_sub = st.columns([3, 7, 6])
+
+#     with col2_sub:
+#         if st.button("🎲 Generate Random DocID"):
+#             random_doc_id = random_doc_select(dataset=selected_option)
     
-    if random_doc_id is not None:
-        st.write(f"*Randomly generated document ID:* **{random_doc_id}**")
-        st.code(random_doc_id, language="text")
+#     if random_doc_id is not None:
+#         st.write(f"*Randomly generated document ID:* **{random_doc_id}**")
+#         st.code(random_doc_id, language="text")
 
-with col3:
-    st.subheader("Search for Similar Documents")
-    st.write("Enter a document ID to find similar documents across all 3 models.")
-    st.write("")
+# with col3:
+#     st.subheader("Search for Similar Documents")
+#     st.write("Enter a document ID to find similar documents across all 3 models.")
+#     st.write("")
     
     
-    options_search = [f for f in os.listdir("datasets") if f.endswith(".csv")]
-    selected_option_search = st.selectbox("Choose an option:", options_search, key="search_sim_docs")
-    doc_id_search = st.text_input("Document ID", key="doc_id_input")
+#     options_search = [f for f in os.listdir("datasets") if f.endswith(".csv")]
+#     selected_option_search = st.selectbox("Choose an option:", options_search, key="search_sim_docs")
+#     doc_id_search = st.text_input("Document ID", key="doc_id_input")
     
-    if st.button("🔍 Find Similar Documents"):
-        if doc_id_search and selected_option_search:
-            try:
+#     if st.button("🔍 Find Similar Documents"):
+#         if doc_id_search and selected_option_search:
+#             try:
 
-                st.markdown(f"## Document: *{doc_id_search}* Info")
-                st.write(f"{find_doc_text(doc_id=doc_id_search, dataset=selected_option_search)}")
-                st.write("")
-                st.write("")
-                results = find_similar_docs(test_set=selected_option_search, doc_id=doc_id_search)
-                display_tables(results=results, dataset=selected_option_search)
-                display_stats(results=results)
-            except Exception as e:
-                st.write(f"Error: {e}")
-                st.error("An error occurred while searching for similar documents. Please check the document ID and try again.")
-        else:
-            st.warning("Please enter a document ID / test dataset to search.")
+#                 st.markdown(f"## Document: *{doc_id_search}* Info")
+#                 st.write(f"{find_doc_text(doc_id=doc_id_search, dataset=selected_option_search)}")
+#                 st.write("")
+#                 st.write("")
+#                 results = find_similar_docs(test_set=selected_option_search, doc_id=doc_id_search)
+#                 display_tables(results=results, dataset=selected_option_search)
+#                 display_stats(results=results)
+#             except Exception as e:
+#                 st.write(f"Error: {e}")
+#                 st.error("An error occurred while searching for similar documents. Please check the document ID and try again.")
+#         else:
+#             st.warning("Please enter a document ID / test dataset to search.")
