@@ -24,11 +24,6 @@ st.write(
     "This app allows you to find similar documents based on their embeddings. "
     "You can select a test set, randomly generate a document ID from that set, and view the retrieval results for the most similar documents."
 )
-st.write("")
-st.write("")
-st.write("")
-st.write("")
-st.write("")
 
 def format_doc_links(doc_id, base_url="https://docviewer.history-lab.org/?doc_id="):
     #return f"<a href='{base_url}{doc_id}' target='_blank'>{doc_id}</a>"
@@ -167,8 +162,19 @@ def display_tables(results: dict, dataset: str) -> None:
             },
         )    
 
-st.subheader("Randomly Generate and View Comparisons")
 st.write("Randomly generate a document ID from a test set and view the retrieval results for the most similar documents.")
+top_level_cols = st.columns([6, 4])
+with top_level_cols[0]:
+    st.write("* Test set v1: 10,000 documents randomly sampled with length 10-150 words.")
+    st.write("* Test set v2: 10,000 documents randomly sampled with length 10-150 words.")
+    st.write("* Test set v3: 10,000 documents randomly sampled with length 10-150 words.")
+    st.write("* Test set v4: 4,201 documents randomly sampled with length 500-1000 words.")
+    st.write("* Test set v5: 10,000 documents randomly sampled with length 100-400 words.")
+with top_level_cols[1]:
+    st.write("* MiniLM: all-MiniLM-L6-v2, 38-45 documents/sec")
+    st.write("* Longformer: allenai/longformer-base-4096, 2-4 documents/sec")
+    st.write("* MS Marco BERT: sentence-transformers/msmarco-bert-base-dot-v5, 8-14 documents/sec")
+
 options = [f for f in os.listdir("datasets") if f.endswith(".csv")]
 selected_option = st.selectbox("Choose an option:", options, key="random_doc_select")
 

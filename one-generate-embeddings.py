@@ -25,6 +25,11 @@ def generate_embeddings(model, output_dir: str, dataset_num: int):
         for row in tqdm(reader, desc="Processing documents"):
             csv_length += 1                           
             doc_id = row["doc_id"].strip()
+
+            file_path = os.path.join(dest_dir, f"{doc_id}_tb.npy")
+            if os.path.exists(file_path):
+                continue
+
             title  = row["title"].strip()
             body   = row["body"].strip()
 
@@ -65,7 +70,8 @@ def main(model_num: int):
     else:
         model = SentenceTransformer(model_name)
 
-    dataset_num = 1
+    ### REPLACE WITH CORRECT DATASET NUM
+    dataset_num = 5
     num_embeddings, output_dir = generate_embeddings(model=model, output_dir=output_dir, dataset_num=dataset_num)
     print(f"Generated {num_embeddings} embeddings in directory: {output_dir}")
 

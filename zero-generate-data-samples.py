@@ -13,7 +13,7 @@ def save_sample_data(num_docs: int, file_name: str) -> str:
         cur.execute(f"""
             SELECT *
             FROM docs TABLESAMPLE BERNOULLI({bernoulli_randomizer})
-            WHERE array_length(regexp_split_to_array(body, '\\s+'), 1) BETWEEN 10 AND 150
+            WHERE array_length(regexp_split_to_array(body, '\\s+'), 1) BETWEEN 100 AND 400
             LIMIT 100000;
         """)
         
@@ -42,7 +42,7 @@ def save_sample_data(num_docs: int, file_name: str) -> str:
 def main():
     
     num_docs = 10000
-    file_name = "v3_sample_data.csv"
+    file_name = "v5_sample_data.csv"
 
     save_sample_data(num_docs, file_name)
 
